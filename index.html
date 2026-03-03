@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>電鍍自動化設備動力規格表</title>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --brand: #1a56a0;
+      --brand-light: #e8f0fb;
+      --accent: #2e7d32;
+      --danger: #c62828;
+      --border: #b0bec5;
+      --bg: #f5f7fa;
+      --white: #ffffff;
+      --text: #212121;
+      --muted: #546e7a;
+      --row-alt: #f0f4f8;
+      --total-bg: #e3f2fd;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Segoe UI", "Microsoft JhengHei", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    /* ── Header ── */
+    .app-header {
+      background: var(--brand);
+      color: #fff;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .app-header h1 { font-size: 18px; font-weight: 700; letter-spacing: .5px; }
+    .app-header .subtitle { font-size: 12px; opacity: .8; margin-top: 2px; }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 14px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: filter .15s;
+    }
+    .btn:hover { filter: brightness(1.1); }
+    .btn:active { filter: brightness(.95); }
+    .btn-primary   { background: #fff; color: var(--brand); }
+    .btn-success   { background: var(--accent); color: #fff; }
+    .btn-warning   { background: #f57f17; color: #fff; }
+    .btn-danger    { background: var(--danger); color: #fff; }
+    .btn-secondary { background: var(--muted); color: #fff; }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+
+    /* ── Project Info ── */
+    .project-info {
+      background: var(--white);
+      margin: 14px 16px 0;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .project-info-header {
+      background: var(--brand-light);
+      padding: 8px 14px;
+      font-weight: 700;
+      color: var(--brand);
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+    }
+    .project-info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 0;
+      padding: 12px 14px;
+    }
+    .info-field {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding: 6px 10px;
+    }
+    .info-field label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+    .info-field input, .info-field select {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 5px 8px;
+      font-size: 13px;
+      background: var(--white);
+      color: var(--text);
+    }
+    .info-field input:focus, .info-field select:focus {
+      outline: 2px solid var(--brand);
+      outline-offset: 1px;
+    }
+
+    /* ── Summary cards ── */
+    .summary-bar {
+      display: flex;
+      gap: 10px;
+      margin: 10px 16px;
+      flex-wrap: wrap;
+    }
+    .summary-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 16px;
+      flex: 1;
+      min-width: 160px;
+      text-align: center;
+    }
+    .summary-card .label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
+    .summary-card .value { font-size: 22px; font-weight: 700; color: var(--brand); }
+    .summary-card .unit  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* ── Quick-add presets ── */
+    .preset-bar {
+      margin: 0 16px 10px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .preset-bar-header {
+      background: var(--brand-light);
+      padding: 7px 14px;
+      font-weight: 700;
+      color: var(--brand);
+      font-size: 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .preset-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 10px 14px;
+    }
+    .preset-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      background: var(--brand-light);
+      color: var(--brand);
+      border: 1px solid #90b8e8;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: background .15s;
+    }
+    .preset-chip:hover { background: #cfe2f7; }
+
+    /* ── Table wrapper ── */
+    .table-section {
+      margin: 0 16px 16px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .table-section-header {
+      background: var(--brand-light);
+      padding: 8px 14px;
+      font-weight: 700;
+      color: var(--brand);
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .table-actions { display: flex; gap: 6px; }
+
+    .table-scroll { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1100px;
+    }
+
+    thead th {
+      background: var(--brand);
+      color: #fff;
+      padding: 9px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+      white-space: nowrap;
+      border-right: 1px solid rgba(255,255,255,.2);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    thead th:last-child { border-right: none; }
+
+    .subhead th {
+      background: #2166c2;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 5px 8px;
+    }
+
+    tbody tr:nth-child(odd)  { background: var(--white); }
+    tbody tr:nth-child(even) { background: var(--row-alt); }
+    tbody tr:hover { background: #deeeff; }
+
+    tbody td {
+      padding: 4px 4px;
+      border-bottom: 1px solid #e0e0e0;
+      border-right: 1px solid #e0e0e0;
+      text-align: center;
+      vertical-align: middle;
+    }
+    tbody td:last-child { border-right: none; }
+
+    /* calculated cells */
+    .calc-cell {
+      background: #f0f7ff;
+      font-weight: 600;
+      color: #1a3a6e;
+      padding: 4px 8px;
+      font-size: 13px;
+    }
+
+    /* total row */
+    tfoot tr { background: var(--total-bg) !important; }
+    tfoot td {
+      padding: 8px 8px;
+      font-weight: 700;
+      font-size: 13px;
+      border-top: 2px solid var(--brand);
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid #b0c8e8;
+      text-align: center;
+      color: var(--brand);
+    }
+    tfoot td.label-cell {
+      text-align: left;
+      font-size: 13px;
+      color: var(--brand);
+    }
+
+    /* inputs inside table */
+    td input[type="text"],
+    td input[type="number"],
+    td select {
+      width: 100%;
+      border: 1px solid transparent;
+      border-radius: 3px;
+      padding: 4px 6px;
+      font-size: 13px;
+      background: transparent;
+      color: var(--text);
+      text-align: center;
+      transition: border-color .15s, background .15s;
+    }
+    td input[type="text"] { text-align: left; }
+    td input:focus, td select:focus {
+      outline: none;
+      border-color: var(--brand);
+      background: #fff;
+    }
+
+    .no-data-row td {
+      text-align: center;
+      padding: 32px;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    /* delete btn */
+    .btn-del {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border: none;
+      border-radius: 4px;
+      background: #ffcdd2;
+      color: var(--danger);
+      cursor: pointer;
+      font-size: 15px;
+      line-height: 1;
+      transition: background .15s;
+    }
+    .btn-del:hover { background: var(--danger); color: #fff; }
+
+    /* ── Voltage group tags ── */
+    .volt-tag {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .volt-110  { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
+    .volt-220  { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+    .volt-380  { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
+    .volt-440  { background: #f3e5f5; color: #6a1b9a; border: 1px solid #ce93d8; }
+
+    .phase-tag {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .phase-1 { background: #fce4ec; color: #880e4f; border: 1px solid #f48fb1; }
+    .phase-3 { background: #e0f2f1; color: #00695c; border: 1px solid #80cbc4; }
+
+    /* ── Voltage breakdown ── */
+    .volt-breakdown {
+      margin: 0 16px 10px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .volt-breakdown-header {
+      background: var(--brand-light);
+      padding: 8px 14px;
+      font-weight: 700;
+      color: var(--brand);
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+    }
+    .volt-breakdown-grid {
+      display: flex;
+      gap: 0;
+      flex-wrap: wrap;
+    }
+    .volt-breakdown-item {
+      flex: 1;
+      min-width: 160px;
+      padding: 10px 16px;
+      border-right: 1px solid var(--border);
+      text-align: center;
+    }
+    .volt-breakdown-item:last-child { border-right: none; }
+    .volt-breakdown-item .vb-title { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    .volt-breakdown-item .vb-kw    { font-size: 18px; font-weight: 700; color: var(--brand); }
+    .volt-breakdown-item .vb-a     { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    /* ── Print styles ── */
+    @media print {
+      body { background: #fff; font-size: 11px; }
+      .app-header { background: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .toolbar { display: none; }
+      .btn { display: none; }
+      .table-actions { display: none; }
+      .preset-bar { display: none; }
+      .summary-bar, .table-section, .volt-breakdown, .project-info { margin: 6px 0; }
+      table { min-width: unset; font-size: 10px; }
+      thead th { background: #1a56a0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      tfoot tr { background: #e3f2fd !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .btn-del { display: none; }
+      td input, td select { border: none; background: transparent; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════ HEADER ════════════ -->
+<header class="app-header">
+  <div>
+    <h1>⚡ 電鍍自動化設備動力規格表</h1>
+    <div class="subtitle">Electroplating Automation Equipment Power Specification</div>
+  </div>
+  <div class="toolbar">
+    <button class="btn btn-primary" onclick="addRow()">＋ 新增設備</button>
+    <button class="btn btn-success" onclick="exportExcel()">📥 匯出 Excel</button>
+    <button class="btn btn-warning" onclick="window.print()">🖨️ 列印</button>
+    <button class="btn btn-secondary" onclick="saveLocal()">💾 儲存</button>
+    <button class="btn btn-danger"   onclick="clearAll()">🗑️ 清除全部</button>
+  </div>
+</header>
+
+<!-- ════════════════════════════════════════ PROJECT INFO ════ -->
+<div class="project-info">
+  <div class="project-info-header">📋 專案資訊</div>
+  <div class="project-info-grid">
+    <div class="info-field">
+      <label>專案名稱</label>
+      <input type="text" id="projName" placeholder="例：XX 廠電鍍線自動化設備" />
+    </div>
+    <div class="info-field">
+      <label>文件編號</label>
+      <input type="text" id="docNo" placeholder="例：EL-2024-001" />
+    </div>
+    <div class="info-field">
+      <label>版次</label>
+      <input type="text" id="revision" placeholder="例：Rev.A" value="Rev.A" />
+    </div>
+    <div class="info-field">
+      <label>日期</label>
+      <input type="date" id="docDate" />
+    </div>
+    <div class="info-field">
+      <label>設計者</label>
+      <input type="text" id="designer" placeholder="姓名" />
+    </div>
+    <div class="info-field">
+      <label>審核者</label>
+      <input type="text" id="reviewer" placeholder="姓名" />
+    </div>
+    <div class="info-field">
+      <label>供電系統</label>
+      <select id="sysVolt">
+        <option>三相 380V / 60Hz</option>
+        <option>三相 440V / 60Hz</option>
+        <option>三相 220V / 60Hz</option>
+      </select>
+    </div>
+    <div class="info-field">
+      <label>備註</label>
+      <input type="text" id="projNote" placeholder="選填" />
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ SUMMARY ════════ -->
+<div class="summary-bar">
+  <div class="summary-card">
+    <div class="label">設備台數</div>
+    <div class="value" id="s-count">0</div>
+    <div class="unit">台</div>
+  </div>
+  <div class="summary-card">
+    <div class="label">連接負載（總功率）</div>
+    <div class="value" id="s-total-kw">0.00</div>
+    <div class="unit">kW</div>
+  </div>
+  <div class="summary-card">
+    <div class="label">計算負載（需量後）</div>
+    <div class="value" id="s-calc-kw">0.00</div>
+    <div class="unit">kW</div>
+  </div>
+  <div class="summary-card">
+    <div class="label">計算電流合計</div>
+    <div class="value" id="s-total-a">0.00</div>
+    <div class="unit">A（參考值）</div>
+  </div>
+  <div class="summary-card">
+    <div class="label">需量因數（平均）</div>
+    <div class="value" id="s-avg-df">—</div>
+    <div class="unit"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ PRESETS ════════ -->
+<div class="preset-bar">
+  <div class="preset-bar-header" onclick="togglePresets(this)">
+    ⚡ 快速新增常用電鍍設備（點擊展開/收起）
+    <span id="preset-arrow">▼</span>
+  </div>
+  <div class="preset-list" id="presetList"></div>
+</div>
+
+<!-- ════════════════════════════════════════ MAIN TABLE ════ -->
+<div class="table-section">
+  <div class="table-section-header">
+    動力規格明細表
+    <div class="table-actions">
+      <button class="btn btn-primary btn-sm" onclick="addRow()">＋ 新增列</button>
+      <button class="btn btn-secondary btn-sm" onclick="importCSV()">📂 匯入 CSV</button>
+      <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="handleCSV(event)" />
+    </div>
+  </div>
+  <div class="table-scroll">
+    <table id="specTable">
+      <thead>
+        <tr>
+          <th rowspan="2" style="width:40px">項次</th>
+          <th rowspan="2" style="min-width:160px">設備名稱</th>
+          <th rowspan="2" style="width:55px">數量<br/><small>台</small></th>
+          <th rowspan="2" style="width:60px">相別</th>
+          <th rowspan="2" style="width:70px">電壓<br/><small>V</small></th>
+          <th rowspan="2" style="width:80px">單台功率<br/><small>kW</small></th>
+          <th rowspan="2" style="width:80px">總功率<br/><small>kW</small></th>
+          <th colspan="2">需量</th>
+          <th colspan="2">電流計算</th>
+          <th rowspan="2" style="min-width:110px">備註</th>
+          <th rowspan="2" style="width:36px"></th>
+        </tr>
+        <tr class="subhead">
+          <th style="width:70px">需量因數</th>
+          <th style="width:80px">計算功率<br/><small>kW</small></th>
+          <th style="width:70px">功率因數<br/><small>cosφ</small></th>
+          <th style="width:85px">計算電流<br/><small>A</small></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr class="no-data-row" id="noDataRow">
+          <td colspan="13">尚無資料，請點擊「＋ 新增設備」或從上方快速新增</td>
+        </tr>
+      </tbody>
+      <tfoot id="tableFoot">
+        <tr>
+          <td colspan="6" class="label-cell" style="padding-left:14px">合　計　Total</td>
+          <td id="f-total-kw">0.00</td>
+          <td>—</td>
+          <td id="f-calc-kw">0.00</td>
+          <td>—</td>
+          <td id="f-total-a">0.00</td>
+          <td colspan="2" style="text-align:left;padding-left:8px;font-size:11px;color:var(--muted);">
+            ＊電流合計為各設備計算電流加總（參考值）
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ VOLT BREAKDOWN ═ -->
+<div class="volt-breakdown">
+  <div class="volt-breakdown-header">📊 各電壓等級負載分配</div>
+  <div class="volt-breakdown-grid" id="voltBreakdown">
+    <div class="volt-breakdown-item"><div class="vb-title">尚無資料</div></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ SCRIPT ════════ -->
+<script>
+// ─────────────────────────────────────────────────────────────
+// PRESET DATA
+// ─────────────────────────────────────────────────────────────
+const PRESETS = [
+  { name:"整流器（直流電源）",    qty:1, phase:"三相", volt:380, kw:30,  df:0.85, pf:0.85, remark:"電鍍主電源" },
+  { name:"整流器（直流電源）",    qty:1, phase:"三相", volt:380, kw:50,  df:0.85, pf:0.85, remark:"電鍍主電源" },
+  { name:"鍍槽加熱器",           qty:1, phase:"三相", volt:380, kw:12,  df:0.80, pf:1.00, remark:"電熱管加熱" },
+  { name:"過濾循環泵",           qty:1, phase:"三相", volt:380, kw:2.2, df:0.80, pf:0.85, remark:"溶液過濾循環" },
+  { name:"抽風機（局部排氣）",   qty:1, phase:"三相", volt:380, kw:3.7, df:0.80, pf:0.85, remark:"酸霧排除" },
+  { name:"輸送系統（行車）",     qty:1, phase:"三相", volt:380, kw:5.5, df:0.70, pf:0.85, remark:"工件輸送" },
+  { name:"空壓機",               qty:1, phase:"三相", volt:380, kw:15,  df:0.75, pf:0.85, remark:"氣壓動力" },
+  { name:"純水設備（RO）",       qty:1, phase:"三相", volt:220, kw:4.0, df:0.70, pf:0.85, remark:"純水製造" },
+  { name:"廢水處理設備",         qty:1, phase:"三相", volt:380, kw:7.5, df:0.70, pf:0.85, remark:"廢水中和" },
+  { name:"控制盤（PLC 系統）",   qty:1, phase:"單相", volt:220, kw:2.0, df:0.90, pf:0.85, remark:"自動控制電源" },
+  { name:"照明及插座",           qty:1, phase:"單相", volt:220, kw:3.0, df:0.80, pf:0.90, remark:"工廠照明" },
+  { name:"烘乾設備",             qty:1, phase:"三相", volt:380, kw:18,  df:0.85, pf:0.95, remark:"工件烘乾" },
+  { name:"超音波洗淨機",         qty:1, phase:"三相", volt:380, kw:6.0, df:0.80, pf:0.85, remark:"前處理清洗" },
+  { name:"攪拌泵",               qty:2, phase:"三相", volt:380, kw:1.5, df:0.80, pf:0.85, remark:"溶液攪拌" },
+  { name:"冷卻水塔",             qty:1, phase:"三相", volt:380, kw:5.5, df:0.70, pf:0.85, remark:"冷卻系統" },
+];
+
+let rowCount = 0;
+
+// ─────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("docDate").value = new Date().toISOString().slice(0,10);
+  buildPresetList();
+  loadLocal();
+});
+
+// ─────────────────────────────────────────────────────────────
+// PRESETS
+// ─────────────────────────────────────────────────────────────
+function buildPresetList() {
+  const list = document.getElementById("presetList");
+  PRESETS.forEach((p, i) => {
+    const chip = document.createElement("button");
+    chip.className = "preset-chip";
+    chip.textContent = `＋ ${p.name}`;
+    chip.title = `${p.kw} kW / ${p.volt}V / ${p.phase}`;
+    chip.onclick = () => addRow(p);
+    list.appendChild(chip);
+  });
+}
+
+function togglePresets(hdr) {
+  const list = document.getElementById("presetList");
+  const arrow = document.getElementById("preset-arrow");
+  const hidden = list.style.display === "none";
+  list.style.display = hidden ? "flex" : "none";
+  arrow.textContent = hidden ? "▼" : "▶";
+}
+
+// ─────────────────────────────────────────────────────────────
+// ADD ROW
+// ─────────────────────────────────────────────────────────────
+function addRow(preset = null) {
+  document.getElementById("noDataRow")?.remove();
+  rowCount++;
+  const id = rowCount;
+
+  const p = preset || {};
+  const tbody = document.getElementById("tableBody");
+  const tr = document.createElement("tr");
+  tr.id = `row-${id}`;
+  tr.dataset.id = id;
+
+  tr.innerHTML = `
+    <td style="font-weight:600;color:var(--muted)">${id}</td>
+    <td><input type="text"   value="${p.name   || ""}"  placeholder="設備名稱"
+               onchange="recalcRow(${id})" oninput="recalcRow(${id})"></td>
+    <td><input type="number" value="${p.qty    ?? 1}"   min="0" step="1"
+               onchange="recalcRow(${id})" oninput="recalcRow(${id})" style="text-align:center"></td>
+    <td>
+      <select onchange="recalcRow(${id})">
+        <option value="三相" ${(p.phase||"三相")==="三相"?"selected":""}>三相</option>
+        <option value="單相" ${p.phase==="單相"?"selected":""}>單相</option>
+      </select>
+    </td>
+    <td>
+      <select onchange="recalcRow(${id})">
+        <option value="110"  ${p.volt===110?"selected":""}>110V</option>
+        <option value="220"  ${p.volt===220?"selected":""}>220V</option>
+        <option value="380"  ${(!p.volt||p.volt===380)?"selected":""}>380V</option>
+        <option value="440"  ${p.volt===440?"selected":""}>440V</option>
+      </select>
+    </td>
+    <td><input type="number" value="${p.kw     ?? ""}"  min="0" step="0.01" placeholder="kW"
+               onchange="recalcRow(${id})" oninput="recalcRow(${id})" style="text-align:center"></td>
+    <td class="calc-cell" id="tp-${id}">—</td>
+    <td><input type="number" value="${p.df     ?? 0.80}" min="0" max="1" step="0.01"
+               onchange="recalcRow(${id})" oninput="recalcRow(${id})" style="text-align:center"></td>
+    <td class="calc-cell" id="cp-${id}">—</td>
+    <td><input type="number" value="${p.pf     ?? 0.85}" min="0.01" max="1" step="0.01"
+               onchange="recalcRow(${id})" oninput="recalcRow(${id})" style="text-align:center"></td>
+    <td class="calc-cell" id="ca-${id}">—</td>
+    <td><input type="text"   value="${p.remark || ""}"  placeholder="備註"></td>
+    <td><button class="btn-del" onclick="deleteRow(${id})" title="刪除此列">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+  recalcRow(id);
+}
+
+// ─────────────────────────────────────────────────────────────
+// DELETE ROW
+// ─────────────────────────────────────────────────────────────
+function deleteRow(id) {
+  document.getElementById(`row-${id}`)?.remove();
+  if (!document.querySelector("#tableBody tr:not(.no-data-row)")) {
+    const tbody = document.getElementById("tableBody");
+    const tr = document.createElement("tr");
+    tr.className = "no-data-row";
+    tr.id = "noDataRow";
+    tr.innerHTML = `<td colspan="13">尚無資料，請點擊「＋ 新增設備」或從上方快速新增</td>`;
+    tbody.appendChild(tr);
+  }
+  updateTotals();
+}
+
+// ─────────────────────────────────────────────────────────────
+// RECALC A SINGLE ROW
+// ─────────────────────────────────────────────────────────────
+function recalcRow(id) {
+  const row = document.getElementById(`row-${id}`);
+  if (!row) return;
+
+  const inputs = row.querySelectorAll("input, select");
+  // column order: name(0), qty(1), phase(2), volt(3), kw(4), df(5), pf(6)
+  const qty    = parseFloat(inputs[1].value) || 0;
+  const phase  = inputs[2].value;
+  const volt   = parseFloat(inputs[3].value) || 380;
+  const kw     = parseFloat(inputs[4].value) || 0;
+  const df     = parseFloat(inputs[5].value) || 0;
+  const pf     = parseFloat(inputs[6].value) || 1;
+
+  const totalKW = qty * kw;
+  const calcKW  = totalKW * df;
+  const sqrt3   = Math.sqrt(3);
+  const currentA = phase === "三相"
+    ? (calcKW * 1000) / (sqrt3 * volt * pf)
+    : (calcKW * 1000) / (volt * pf);
+
+  document.getElementById(`tp-${id}`).textContent = totalKW.toFixed(2);
+  document.getElementById(`cp-${id}`).textContent = calcKW.toFixed(2);
+  document.getElementById(`ca-${id}`).textContent = (calcKW > 0 ? currentA.toFixed(2) : "—");
+
+  updateTotals();
+}
+
+// ─────────────────────────────────────────────────────────────
+// TOTALS & SUMMARY
+// ─────────────────────────────────────────────────────────────
+function updateTotals() {
+  const rows = [...document.querySelectorAll("#tableBody tr[data-id]")];
+
+  let totalQty = 0, totalKW = 0, calcKW = 0, totalA = 0;
+  const voltMap = {};   // { "380V 三相": {kw,calcKW,A} }
+
+  rows.forEach(row => {
+    const id = row.dataset.id;
+    const inputs = row.querySelectorAll("input, select");
+    const qty   = parseFloat(inputs[1].value) || 0;
+    const phase = inputs[2].value;
+    const volt  = parseFloat(inputs[3].value) || 380;
+    const kw    = parseFloat(inputs[4].value) || 0;
+    const df    = parseFloat(inputs[5].value) || 0;
+    const pf    = parseFloat(inputs[6].value) || 1;
+
+    const tp = qty * kw;
+    const cp = tp * df;
+    const sqrt3 = Math.sqrt(3);
+    const ca = phase === "三相"
+      ? (cp * 1000) / (sqrt3 * volt * pf)
+      : (cp * 1000) / (volt * pf);
+
+    totalQty += qty;
+    totalKW  += tp;
+    calcKW   += cp;
+    totalA   += (cp > 0 ? ca : 0);
+
+    const key = `${volt}V ${phase}`;
+    if (!voltMap[key]) voltMap[key] = { volt, phase, kw:0, calcKW:0, A:0 };
+    voltMap[key].kw     += tp;
+    voltMap[key].calcKW += cp;
+    voltMap[key].A      += (cp > 0 ? ca : 0);
+  });
+
+  // Summary cards
+  document.getElementById("s-count").textContent    = rows.length;
+  document.getElementById("s-total-kw").textContent = totalKW.toFixed(2);
+  document.getElementById("s-calc-kw").textContent  = calcKW.toFixed(2);
+  document.getElementById("s-total-a").textContent  = totalA.toFixed(2);
+
+  // Average demand factor
+  const avgDF = totalKW > 0 ? (calcKW / totalKW) : null;
+  document.getElementById("s-avg-df").textContent = avgDF ? avgDF.toFixed(3) : "—";
+
+  // Footer
+  document.getElementById("f-total-kw").textContent = totalKW.toFixed(2);
+  document.getElementById("f-calc-kw").textContent  = calcKW.toFixed(2);
+  document.getElementById("f-total-a").textContent  = totalA.toFixed(2);
+
+  // Voltage breakdown
+  const bd = document.getElementById("voltBreakdown");
+  bd.innerHTML = "";
+  if (Object.keys(voltMap).length === 0) {
+    bd.innerHTML = `<div class="volt-breakdown-item"><div class="vb-title">尚無資料</div></div>`;
+  } else {
+    Object.entries(voltMap).sort((a,b)=>b[1].kw - a[1].kw).forEach(([key, v]) => {
+      const vClass = `volt-${v.volt}`;
+      const pClass = v.phase === "三相" ? "phase-3" : "phase-1";
+      bd.innerHTML += `
+        <div class="volt-breakdown-item">
+          <div class="vb-title">
+            <span class="volt-tag ${vClass}">${v.volt}V</span>
+            <span class="phase-tag ${pClass}">${v.phase}</span>
+          </div>
+          <div class="vb-kw">${v.kw.toFixed(2)} kW</div>
+          <div class="vb-a">計算：${v.calcKW.toFixed(2)} kW ／ ${v.A.toFixed(1)} A</div>
+        </div>`;
+    });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// EXCEL EXPORT (SheetJS)
+// ─────────────────────────────────────────────────────────────
+function exportExcel() {
+  if (typeof XLSX === "undefined") {
+    alert("Excel 函式庫載入中，請稍後再試（需要網路連線）");
+    return;
+  }
+
+  const projName = document.getElementById("projName").value || "電鍍自動化設備";
+  const docNo    = document.getElementById("docNo").value    || "";
+  const revision = document.getElementById("revision").value || "";
+  const docDate  = document.getElementById("docDate").value  || "";
+  const designer = document.getElementById("designer").value || "";
+  const reviewer = document.getElementById("reviewer").value || "";
+
+  const wb = XLSX.utils.book_new();
+  const wsData = [];
+
+  // Title rows
+  wsData.push([`電鍍自動化設備動力規格表`]);
+  wsData.push([`專案名稱：${projName}`, "", "", `文件編號：${docNo}`, "", `版次：${revision}`, `日期：${docDate}`]);
+  wsData.push([`設計者：${designer}`, "", "", `審核者：${reviewer}`]);
+  wsData.push([]); // blank
+
+  // Header
+  wsData.push([
+    "項次","設備名稱","數量(台)","相別","電壓(V)",
+    "單台功率(kW)","總功率(kW)",
+    "需量因數","計算功率(kW)",
+    "功率因數 cosφ","計算電流(A)",
+    "備註"
+  ]);
+
+  const rows = [...document.querySelectorAll("#tableBody tr[data-id]")];
+  let totalKW = 0, calcKW = 0, totalA = 0;
+
+  rows.forEach((row, idx) => {
+    const inputs = row.querySelectorAll("input, select");
+    const name  = inputs[0].value;
+    const qty   = parseFloat(inputs[1].value) || 0;
+    const phase = inputs[2].value;
+    const volt  = parseFloat(inputs[3].value) || 380;
+    const kw    = parseFloat(inputs[4].value) || 0;
+    const df    = parseFloat(inputs[5].value) || 0;
+    const pf    = parseFloat(inputs[6].value) || 1;
+    const remark = inputs[7].value;
+
+    const tp = qty * kw;
+    const cp = tp * df;
+    const sqrt3 = Math.sqrt(3);
+    const ca = phase === "三相"
+      ? (cp * 1000) / (sqrt3 * volt * pf)
+      : (cp * 1000) / (volt * pf);
+
+    totalKW += tp; calcKW += cp; totalA += (cp > 0 ? ca : 0);
+
+    wsData.push([idx+1, name, qty, phase, volt, kw,
+      +tp.toFixed(3), df, +cp.toFixed(3), pf,
+      cp > 0 ? +ca.toFixed(2) : 0, remark]);
+  });
+
+  // Total row
+  wsData.push([
+    "合計","","","","","",
+    +totalKW.toFixed(3),"",+calcKW.toFixed(3),"",+totalA.toFixed(2),""
+  ]);
+
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  // Column widths
+  ws["!cols"] = [
+    {wch:6},{wch:28},{wch:8},{wch:8},{wch:8},
+    {wch:12},{wch:12},{wch:10},{wch:12},{wch:12},{wch:12},{wch:20}
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, "動力規格表");
+  XLSX.writeFile(wb, `動力規格表_${projName}_${docDate || "draft"}.xlsx`);
+}
+
+// ─────────────────────────────────────────────────────────────
+// CSV IMPORT
+// ─────────────────────────────────────────────────────────────
+function importCSV() {
+  document.getElementById("csvFile").click();
+}
+
+function handleCSV(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const lines = ev.target.result.split("\n").map(l => l.trim()).filter(l => l);
+    // Skip header if first line has non-numeric qty
+    const start = isNaN(parseFloat(lines[0].split(",")[2])) ? 1 : 0;
+    lines.slice(start).forEach(line => {
+      const cols = line.split(",").map(c => c.trim().replace(/^"|"$/g,""));
+      if (cols.length < 6) return;
+      addRow({
+        name:   cols[1] || "",
+        qty:    parseFloat(cols[2]) || 1,
+        phase:  cols[3] || "三相",
+        volt:   parseFloat(cols[4]) || 380,
+        kw:     parseFloat(cols[5]) || 0,
+        df:     parseFloat(cols[7]) || 0.80,
+        pf:     parseFloat(cols[9]) || 0.85,
+        remark: cols[11] || ""
+      });
+    });
+  };
+  reader.readAsText(file, "UTF-8");
+  e.target.value = "";
+}
+
+// ─────────────────────────────────────────────────────────────
+// LOCAL STORAGE SAVE / LOAD
+// ─────────────────────────────────────────────────────────────
+function saveLocal() {
+  const rows = [...document.querySelectorAll("#tableBody tr[data-id]")].map(row => {
+    const inputs = row.querySelectorAll("input, select");
+    return {
+      name:   inputs[0].value,
+      qty:    inputs[1].value,
+      phase:  inputs[2].value,
+      volt:   inputs[3].value,
+      kw:     inputs[4].value,
+      df:     inputs[5].value,
+      pf:     inputs[6].value,
+      remark: inputs[7].value
+    };
+  });
+  const meta = {
+    projName: document.getElementById("projName").value,
+    docNo:    document.getElementById("docNo").value,
+    revision: document.getElementById("revision").value,
+    docDate:  document.getElementById("docDate").value,
+    designer: document.getElementById("designer").value,
+    reviewer: document.getElementById("reviewer").value,
+    sysVolt:  document.getElementById("sysVolt").value,
+    projNote: document.getElementById("projNote").value,
+  };
+  localStorage.setItem("powerSpec_rows", JSON.stringify(rows));
+  localStorage.setItem("powerSpec_meta", JSON.stringify(meta));
+  alert("✅ 已儲存到瀏覽器本機");
+}
+
+function loadLocal() {
+  const metaRaw = localStorage.getItem("powerSpec_meta");
+  if (metaRaw) {
+    const m = JSON.parse(metaRaw);
+    document.getElementById("projName").value = m.projName || "";
+    document.getElementById("docNo").value    = m.docNo    || "";
+    document.getElementById("revision").value = m.revision || "Rev.A";
+    document.getElementById("docDate").value  = m.docDate  || new Date().toISOString().slice(0,10);
+    document.getElementById("designer").value = m.designer || "";
+    document.getElementById("reviewer").value = m.reviewer || "";
+    document.getElementById("sysVolt").value  = m.sysVolt  || "三相 380V / 60Hz";
+    document.getElementById("projNote").value = m.projNote || "";
+  }
+
+  const rowsRaw = localStorage.getItem("powerSpec_rows");
+  if (rowsRaw) {
+    const rows = JSON.parse(rowsRaw);
+    rows.forEach(r => addRow({
+      name:   r.name,
+      qty:    parseFloat(r.qty),
+      phase:  r.phase,
+      volt:   parseFloat(r.volt),
+      kw:     parseFloat(r.kw),
+      df:     parseFloat(r.df),
+      pf:     parseFloat(r.pf),
+      remark: r.remark
+    }));
+  }
+}
+
+function clearAll() {
+  if (!confirm("確定要清除所有設備資料嗎？")) return;
+  document.getElementById("tableBody").innerHTML = `
+    <tr class="no-data-row" id="noDataRow">
+      <td colspan="13">尚無資料，請點擊「＋ 新增設備」或從上方快速新增</td>
+    </tr>`;
+  rowCount = 0;
+  localStorage.removeItem("powerSpec_rows");
+  updateTotals();
+}
+</script>
+</body>
+</html>
